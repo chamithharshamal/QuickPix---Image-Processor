@@ -19,10 +19,10 @@ export default function ProcessingControls({
 
   return (
     <div className="space-y-5">
-      {/* Upscaling */}
+      {/* Upscaling - Default to no upscaling */}
       <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Upscale Factor
+          Upscale Factor (Warning: High memory usage)
         </label>
         <select
           value={options.upscaleFactor || 1}
@@ -30,10 +30,15 @@ export default function ProcessingControls({
           disabled={disabled}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value={1}>No upscaling (1x)</option>
-          <option value={2}>2x upscaling</option>
-          <option value={4}>4x upscaling</option>
+          <option value={1}>No upscaling (1x) - Recommended</option>
+          <option value={2}>2x upscaling (High memory usage)</option>
+          <option value={4}>4x upscaling (Very high memory usage)</option>
         </select>
+        {options.upscaleFactor && options.upscaleFactor > 1 && (
+          <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+            Warning: Upscaling uses significant memory. Process fewer images at a time.
+          </p>
+        )}
       </div>
 
       {/* Format Conversion */}

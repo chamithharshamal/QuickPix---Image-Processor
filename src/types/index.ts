@@ -36,7 +36,7 @@ export interface ImageProcessorConfig {
 }
 
 export interface ExifData {
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export interface SimplifiedExifData {

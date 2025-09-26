@@ -12,6 +12,7 @@ A powerful, client-side image processing web application built with Next.js, Ten
 - **Metadata Viewer & Cleaner** - View EXIF data and remove metadata for privacy
 - **Batch Processing** - Process multiple images simultaneously using Web Workers
 - **ZIP Download** - Download all processed images as a single ZIP file
+- **Image Previews** - View previews of uploaded and processed images
 - **Progress Tracking** - Real-time progress indicators for batch operations
 - **Performance Monitoring** - Built-in performance metrics and optimization
 
@@ -91,14 +92,16 @@ This is a static Next.js application that can be deployed to any static hosting 
 ### Image Processing
 
 1. **Upload Images**: Drag and drop or click to select multiple image files
-2. **Configure Options**: 
+2. **Preview Images**: View thumbnails of selected images
+3. **Configure Options**: 
    - Choose upscaling factor (1x, 2x, 4x)
    - Select output format (JPEG, PNG, WebP, AVIF)
    - Set quality and compression levels
    - Add watermarks if desired
    - Resize images with optional aspect ratio preservation
-3. **Process**: Click "Start Processing" to begin batch processing
-4. **Download**: Download individual images or all as a ZIP file
+4. **Process**: Click "Start Processing" to begin batch processing
+5. **Preview Results**: Click on any processed image to view a full preview
+6. **Download**: Download individual images or all as a ZIP file
 
 ### Metadata Viewer & Cleaner
 
@@ -130,6 +133,27 @@ To use the metadata viewer:
 - **Memory Management**: Efficient memory usage with cleanup
 - **Progress Tracking**: Real-time progress updates
 - **Error Handling**: Graceful error handling with fallbacks
+
+## Memory Management
+
+QuickPix includes advanced memory management features to prevent browser crashes and freezing:
+
+- **Aggressive Cleanup**: Automatic cleanup of TensorFlow.js tensors and object URLs
+- **Memory Pressure Detection**: Monitors memory usage and reduces processing load when needed
+- **Batch Size Control**: Automatically adjusts batch sizes based on available memory
+- **Worker Limiting**: Limits concurrent workers to prevent memory overload
+- **Garbage Collection**: Forces garbage collection when available
+- **Resource Monitoring**: Continuous monitoring of memory usage with warnings
+
+### Memory Usage Tips
+
+To avoid memory issues and PC freezing:
+
+1. **Process Fewer Images**: Keep batches to 1-2 images when using upscaling
+2. **Disable Upscaling**: Keep upscaling at 1x for larger batches
+3. **Lower Quality Settings**: Use lower quality/compression settings to reduce memory usage
+4. **Close Other Applications**: Free up system resources before processing
+5. **Monitor Memory Usage**: Pay attention to browser warnings about memory usage
 
 ## Browser Support
 
@@ -170,6 +194,8 @@ The application automatically selects the best available backend:
 - Process images in smaller batches for very large collections
 - Close other browser tabs to free up memory
 - Use modern browsers with good WebGL support
+- Keep upscaling disabled (1x) for larger batches
+- Use lower quality settings to reduce memory consumption
 
 ## Contributing
 

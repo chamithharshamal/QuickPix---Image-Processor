@@ -1,6 +1,7 @@
 import { ProcessingOptions } from '@/types';
 import { upscaleImage } from './upscaler';
 import { convertFormat, resizeImage, compressImage, addWatermark } from './imageUtils';
+import { memoryManager } from './memoryManager';
 
 export class WorkerManager {
   private workers: Worker[] = [];
@@ -8,8 +9,11 @@ export class WorkerManager {
   private currentWorkerIndex = 0;
 
   constructor(maxWorkers: number = navigator.hardwareConcurrency || 4) {
-    this.maxWorkers = Math.min(maxWorkers, 8); // Cap at 8 workers
+    this.maxWorkers = Math.min(maxWorkers, 4); // Cap at 4 workers (reduced from 8)
     this.initializeWorkers();
+    
+    // Clean up TensorFlow memory periodically
+    this.setupMemoryCleanup();
   }
 
   private initializeWorkers() {
@@ -17,6 +21,33 @@ export class WorkerManager {
       const worker = new Worker('/imageWorker.js');
       this.workers.push(worker);
     }
+  }
+
+  private setupMemoryCleanup() {
+    // Periodically clean up TensorFlow memory
+    setInterval(() => {
+      try {
+        // @ts-ignore - TensorFlow.js internal API
+        if (typeof tf !== 'undefined' && tf.engine) {
+          // @ts-ignore - TensorFlow.js internal API
+          tf.engine().endScope();
+          // @ts-ignore - TensorFlow.js internal API
+          tf.engine().startScope();
+        }
+        
+        // Force garbage collection if available
+        if (typeof window !== 'undefined' && window.gc) {
+          window.gc();
+        }
+      } catch (error) {
+        console.warn('Failed to clean up TensorFlow memory:', error);
+      }
+    }, 15000); // Every 15 seconds (more frequent)
+    
+    // Register cleanup callback with memory manager
+    memoryManager.registerCleanup(() => {
+      this.terminate();
+    });
   }
 
   async processImageWithWorker(
@@ -160,6 +191,17 @@ export class WorkerManager {
   terminate() {
     this.workers.forEach(worker => worker.terminate());
     this.workers = [];
+    
+    // Clean up TensorFlow memory
+    try {
+      // @ts-ignore - TensorFlow.js internal API
+      if (typeof tf !== 'undefined' && tf.engine) {
+        // @ts-ignore - TensorFlow.js internal API
+        tf.engine().endScope();
+      }
+    } catch (error) {
+      console.warn('Failed to clean up TensorFlow memory on termination:', error);
+    }
   }
 }
 

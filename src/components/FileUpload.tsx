@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 
 interface FileUploadProps {
@@ -9,12 +9,19 @@ interface FileUploadProps {
 }
 
 export default function FileUpload({ onFilesSelected, disabled = false }: FileUploadProps) {
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  
   const onDrop = useCallback((acceptedFiles: File[]) => {
     // Filter for image files only
     const imageFiles = acceptedFiles.filter(file => 
       file.type.startsWith('image/')
     );
+    
     onFilesSelected(imageFiles);
+    
+    // Create preview URLs
+    const previewUrls = imageFiles.map(file => URL.createObjectURL(file));
+    setPreviewImages(previewUrls);
   }, [onFilesSelected]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -72,6 +79,28 @@ export default function FileUpload({ onFilesSelected, disabled = false }: FileUp
           </div>
         </div>
       </div>
+      
+      {/* Image Previews */}
+      {previewImages.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+            Selected Images ({previewImages.length})
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {previewImages.map((previewUrl, index) => (
+              <div key={index} className="relative group">
+                <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
+                  <img 
+                    src={previewUrl} 
+                    alt={`Preview ${index + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

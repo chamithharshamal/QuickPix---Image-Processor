@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProcessedImage, ProcessingOptions } from '@/types';
 import ProcessingControls from './ProcessingControls';
 import ProcessingProgress from './ProcessingProgress';
 import { processImages } from '@/utils/imageProcessor';
+import { terminateWorkerManager } from '@/utils/workerManager';
+import { memoryManager } from '@/utils/memoryManager';
 
 interface ImageProcessorProps {
   files: File[];
@@ -20,7 +22,7 @@ export default function ImageProcessor({
   isProcessing 
 }: ImageProcessorProps) {
   const [options, setOptions] = useState<ProcessingOptions>({
-    upscaleFactor: 2,
+    upscaleFactor: 1, // Default to no upscaling to reduce memory usage
     targetFormat: 'jpeg',
     quality: 0.9,
     maintainAspectRatio: true,
@@ -28,16 +30,55 @@ export default function ImageProcessor({
   });
   const [progress, setProgress] = useState({ current: 0, total: 0, currentFile: '', operation: '' });
 
+  // Monitor memory usage
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const memoryInfo = memoryManager.getMemoryInfo();
+      if (memoryInfo.usedMB && memoryInfo.totalMB) {
+        console.log(`Memory usage: ${Math.round(memoryInfo.usedMB)} MB / ${Math.round(memoryInfo.totalMB)} MB`);
+        
+        // If memory usage is too high, trigger cleanup
+        if (memoryManager.isMemoryPressureHigh()) {
+          console.warn('High memory usage detected, triggering cleanup');
+          memoryManager.forceCleanup();
+        }
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Clean up resources when component unmounts
+  useEffect(() => {
+    return () => {
+      terminateWorkerManager();
+      
+      // Force memory cleanup
+      memoryManager.forceCleanup();
+    };
+  }, []);
+
   const handleStartProcessing = async () => {
     onStartProcessing();
     setProgress({ current: 0, total: files.length, currentFile: '', operation: 'Starting...' });
     
     try {
+      // Show warning for large batches
+      if (files.length > 5) {
+        const shouldContinue = window.confirm(
+          `You are about to process ${files.length} images which may cause high memory usage. ` +
+          `Consider processing fewer images at a time. Do you want to continue?`
+        );
+        if (!shouldContinue) {
+          return;
+        }
+      }
+      
       const results = await processImages(files, options, setProgress);
       onProcessingComplete(results);
     } catch (error) {
       console.error('Processing failed:', error);
-      alert('Processing failed. Please try again.');
+      alert('Processing failed. Please try again with fewer images.');
     }
   };
 

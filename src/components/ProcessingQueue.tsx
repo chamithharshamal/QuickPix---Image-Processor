@@ -12,6 +12,7 @@ interface ProcessingQueueProps {
 
 export default function ProcessingQueue({ processedImages, isProcessing }: ProcessingQueueProps) {
   const [downloading, setDownloading] = useState(false);
+  const [expandedImageId, setExpandedImageId] = useState<string | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -48,6 +49,10 @@ export default function ProcessingQueue({ processedImages, isProcessing }: Proce
     } finally {
       setDownloading(false);
     }
+  };
+
+  const toggleExpand = (imageId: string) => {
+    setExpandedImageId(expandedImageId === imageId ? null : imageId);
   };
 
   if (processedImages.length === 0 && !isProcessing) {
@@ -101,55 +106,164 @@ export default function ProcessingQueue({ processedImages, isProcessing }: Proce
           )}
         </div>
 
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="space-y-4 max-h-96 overflow-y-auto">
           {processedImages.map((image) => (
             <div
               key={image.id}
-              className="flex items-center space-x-4 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600"
+              className="bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"
             >
-              <div className="flex-shrink-0">
-                <div 
-                  className="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center overflow-hidden"
-                  style={{
-                    backgroundImage: `url(${image.processedUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}
-                >
-                  {!image.processedUrl && (
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  )}
+              <div 
+                className="flex items-center space-x-4 p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => toggleExpand(image.id)}
+              >
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={image.processedUrl} 
+                      alt={image.originalFile.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // If the processedUrl fails, try creating a new object URL from the blob
+                        const target = e.target as HTMLImageElement;
+                        if (image.processedBlob) {
+                          const objectUrl = URL.createObjectURL(image.processedBlob);
+                          target.src = objectUrl;
+                          // Clean up the object URL when the component unmounts or image changes
+                          target.onload = () => {
+                            URL.revokeObjectURL(objectUrl);
+                          };
+                        } else {
+                          // Fallback to placeholder if no blob available
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = `
+                              <div class="w-full h-full bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            `;
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {image.originalFile.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {image.operation} • {formatFileSize(image.processedSize)} 
+                    {image.originalSize !== image.processedSize && (
+                      <span className={`ml-1 ${
+                        image.processedSize < image.originalSize ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        ({image.processedSize < image.originalSize ? '-' : '+'}
+                        {Math.round(Math.abs(image.processedSize - image.originalSize) / image.originalSize * 100)}%)
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Processed in {image.processingTime}ms
+                  </p>
+                </div>
+                
+                <div className="flex-shrink-0 flex items-center space-x-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadSingle(image);
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                  >
+                    Download
+                  </button>
+                  <svg 
+                    className={`w-5 h-5 text-gray-500 transition-transform ${expandedImageId === image.id ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
               </div>
               
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {image.originalFile.name}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {image.operation} • {formatFileSize(image.processedSize)} 
-                  {image.originalSize !== image.processedSize && (
-                    <span className={`ml-1 ${
-                      image.processedSize < image.originalSize ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      ({image.processedSize < image.originalSize ? '-' : '+'}
-                      {Math.round(Math.abs(image.processedSize - image.originalSize) / image.originalSize * 100)}%)
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Processed in {image.processingTime}ms
-                </p>
-              </div>
-              
-              <button
-                onClick={() => downloadSingle(image)}
-                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
-              >
-                Download
-              </button>
+              {/* Expanded Preview */}
+              {expandedImageId === image.id && (
+                <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex-1">
+                      <img 
+                        src={image.processedUrl} 
+                        alt="Processed preview" 
+                        className="max-h-64 mx-auto object-contain rounded-lg border border-gray-200 dark:border-gray-700"
+                        onError={(e) => {
+                          // If the processedUrl fails, try creating a new object URL from the blob
+                          const target = e.target as HTMLImageElement;
+                          if (image.processedBlob) {
+                            const objectUrl = URL.createObjectURL(image.processedBlob);
+                            target.src = objectUrl;
+                            // Clean up the object URL when the component unmounts or image changes
+                            target.onload = () => {
+                              URL.revokeObjectURL(objectUrl);
+                            };
+                          } else {
+                            // Fallback if no blob available
+                            target.parentElement!.innerHTML = `
+                              <div class="text-center py-8">
+                                <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <p class="mt-2 text-gray-500">Failed to load image preview</p>
+                              </div>
+                            `;
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="md:w-64">
+                      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-2">Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Operation:</span>
+                            <span className="ml-2 text-gray-900 dark:text-white">{image.operation}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Original Size:</span>
+                            <span className="ml-2 text-gray-900 dark:text-white">{formatFileSize(image.originalSize)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Processed Size:</span>
+                            <span className="ml-2 text-gray-900 dark:text-white">{formatFileSize(image.processedSize)}</span>
+                            {image.originalSize !== image.processedSize && (
+                              <span className={`ml-2 ${
+                                image.processedSize < image.originalSize ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                              }`}>
+                                ({image.processedSize < image.originalSize ? '-' : '+'}
+                                {Math.round(Math.abs(image.processedSize - image.originalSize) / image.originalSize * 100)}%)
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Processing Time:</span>
+                            <span className="ml-2 text-gray-900 dark:text-white">{image.processingTime}ms</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Format:</span>
+                            <span className="ml-2 text-gray-900 dark:text-white uppercase">{image.targetFormat}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -1,6 +1,6 @@
 declare module 'exifr' {
   interface ExifData {
-    [key: string]: unknown;
+    [key: string]: any;
   }
 
   interface ExifrOptions {
@@ -16,14 +16,10 @@ declare module 'exifr' {
     geoTiff?: boolean;
   }
 
-  type ParseFunction = (
+  function parse(
     input: ArrayBuffer | Buffer | File | Blob | string,
     options?: ExifrOptions | boolean
-  ) => Promise<ExifData | null>;
+  ): Promise<ExifData | null>;
 
-  const exifr: {
-    parse: ParseFunction;
-  };
-
-  export default exifr;
+  export default { parse };
 }
