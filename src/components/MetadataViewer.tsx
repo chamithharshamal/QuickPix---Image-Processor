@@ -156,7 +156,7 @@ const MetadataViewer: React.FC<MetadataViewerProps> = ({ file, onCleanedFile }) 
               )}
             </div>
 
-            {exifData.gps && (
+              {exifData.gps && (
                 <div className="bg-gray-50 dark:bg-gray-700/30 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Location</div>
                   <div className="font-medium text-gray-900 dark:text-white text-sm">

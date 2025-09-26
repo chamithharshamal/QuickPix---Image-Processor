@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import MetadataViewer from '@/components/MetadataViewer';
-import Image from 'next/image';
 
 export default function MetadataSection() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

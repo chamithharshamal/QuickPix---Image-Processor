@@ -16,13 +16,13 @@ declare module 'exifr' {
     geoTiff?: boolean;
   }
 
-  function parse(
+  type ParseFunction = (
     input: ArrayBuffer | Buffer | File | Blob | string,
     options?: ExifrOptions | boolean
-  ): Promise<ExifData | null>;
+  ) => Promise<ExifData | null>;
 
   const exifr: {
-    parse: typeof parse;
+    parse: ParseFunction;
   };
 
   export default exifr;
