@@ -1,8 +1,8 @@
 import exifr from 'exifr';
 import { SimplifiedExifData } from '@/types';
 
-export interface ExifData {
-  [key: string]: any;
+interface ExifData {
+  [key: string]: unknown;
 }
 
 /**
@@ -13,7 +13,7 @@ export interface ExifData {
 export async function extractExifData(file: File): Promise<SimplifiedExifData | null> {
   try {
     // exifr can work directly with File objects
-    const exifData = await exifr.parse(file);
+    const exifData = await exifr.parse(file) as ExifData | null;
     
     if (!exifData) {
       return null;
@@ -24,14 +24,14 @@ export async function extractExifData(file: File): Promise<SimplifiedExifData | 
     
     // Camera information
     if (exifData.Make || exifData.Model) {
-      simplifiedData.make = exifData.Make;
-      simplifiedData.model = exifData.Model;
+      simplifiedData.make = exifData.Make as string | undefined;
+      simplifiedData.model = exifData.Model as string | undefined;
       simplifiedData.camera = `${exifData.Make || ''} ${exifData.Model || ''}`.trim();
     }
     
     // Lens information
     if (exifData.LensModel) {
-      simplifiedData.lens = exifData.LensModel;
+      simplifiedData.lens = exifData.LensModel as string;
     }
     
     // Exposure information
@@ -44,31 +44,31 @@ export async function extractExifData(file: File): Promise<SimplifiedExifData | 
     }
     
     if (exifData.ExposureTime) {
-      simplifiedData.shutterSpeed = formatShutterSpeed(exifData.ExposureTime);
+      simplifiedData.shutterSpeed = formatShutterSpeed(exifData.ExposureTime as number);
     }
     
     if (exifData.ISO) {
-      simplifiedData.iso = exifData.ISO.toString();
+      simplifiedData.iso = (exifData.ISO as number).toString();
     }
     
     // Date and time
     if (exifData.DateTimeOriginal) {
-      simplifiedData.dateTime = formatDateTime(exifData.DateTimeOriginal);
+      simplifiedData.dateTime = formatDateTime(exifData.DateTimeOriginal as string | number | Date);
     } else if (exifData.DateTime) {
-      simplifiedData.dateTime = formatDateTime(exifData.DateTime);
+      simplifiedData.dateTime = formatDateTime(exifData.DateTime as string | number | Date);
     }
     
     // GPS coordinates
     if (exifData.latitude && exifData.longitude) {
       simplifiedData.gps = {
-        latitude: exifData.latitude,
-        longitude: exifData.longitude
+        latitude: exifData.latitude as number,
+        longitude: exifData.longitude as number
       };
     }
     
     // Software information
     if (exifData.Software) {
-      simplifiedData.software = exifData.Software;
+      simplifiedData.software = exifData.Software as string;
     }
     
     return simplifiedData;

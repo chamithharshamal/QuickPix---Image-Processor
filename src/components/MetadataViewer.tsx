@@ -157,21 +157,21 @@ const MetadataViewer: React.FC<MetadataViewerProps> = ({ file, onCleanedFile }) 
             </div>
 
             {exifData.gps && (
-              <div className="bg-gray-50 dark:bg-gray-700/30 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Location</div>
-                <div className="font-medium text-gray-900 dark:text-white text-sm">
-                  {exifData.gps.latitude.toFixed(6)}, {exifData.gps.longitude.toFixed(6)}
+                <div className="bg-gray-50 dark:bg-gray-700/30 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Location</div>
+                  <div className="font-medium text-gray-900 dark:text-white text-sm">
+                    {exifData.gps.latitude.toFixed(6)}, {exifData.gps.longitude.toFixed(6)}
+                  </div>
+                  <a 
+                    href={`https://www.google.com/maps?q=${exifData.gps.latitude},${exifData.gps.longitude}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline text-sm inline-block mt-1"
+                  >
+                    View on Google Maps
+                  </a>
                 </div>
-                <a 
-                  href={`https://www.google.com/maps?q=${exifData.gps.latitude},${exifData.gps.longitude}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline text-sm inline-block mt-1"
-                >
-                  View on Google Maps
-                </a>
-              </div>
-            )}
+              )}
 
             <div className="pt-2">
               <button

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import MetadataViewer from '@/components/MetadataViewer';
+import Image from 'next/image';
 
 export default function MetadataSection() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -127,6 +128,7 @@ export default function MetadataSection() {
             </h3>
             <div className="border rounded-xl p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
               <div className="flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={previewUrl} 
                   alt="Preview" 
