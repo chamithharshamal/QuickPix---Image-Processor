@@ -202,7 +202,7 @@ const MetadataViewer: React.FC<MetadataViewerProps> = ({ file, onCleanedFile }) 
               </svg>
             </div>
             <p className="font-medium text-gray-900 dark:text-white">No metadata found</p>
-            <p className="text-sm">This image doesn't contain metadata</p>
+            <p className="text-sm">This image does not contain metadata</p>
           </div>
         ) : (
           <div className="text-gray-500 dark:text-gray-400 text-center py-8">
