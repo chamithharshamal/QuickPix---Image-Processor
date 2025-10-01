@@ -34,9 +34,12 @@ export default function ProcessingControls({
           <option value={2}>2x upscaling (High memory usage)</option>
           <option value={4}>4x upscaling (Very high memory usage)</option>
         </select>
+        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+          Default is set to no upscaling to prevent memory issues. Only enable upscaling for single images.
+        </p>
         {options.upscaleFactor && options.upscaleFactor > 1 && (
-          <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-            Warning: Upscaling uses significant memory. Process fewer images at a time.
+          <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+            Warning: Upscaling uses significant memory. Process only 1-2 images at a time.
           </p>
         )}
       </div>

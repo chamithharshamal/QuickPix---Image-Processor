@@ -1,6 +1,6 @@
 declare module 'exifr' {
   interface ExifData {
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   interface ExifrOptions {
@@ -21,5 +21,9 @@ declare module 'exifr' {
     options?: ExifrOptions | boolean
   ): Promise<ExifData | null>;
 
-  export default { parse };
+  namespace exifr {
+    export { parse };
+  }
+
+  export = exifr;
 }

@@ -1,33 +1,22 @@
 import { ProcessedImage, ProcessingOptions, ProcessingProgress } from '@/types';
 import { getWorkerManager } from './workerManager';
-import { getPerformanceMonitor } from './performanceMonitor';
-import { memoryManager } from './memoryManager';
 
 export interface BatchConfig {
   maxConcurrentBatches: number;
   batchSize: number;
   enableProgressUpdates: boolean;
-  enablePerformanceMonitoring: boolean;
 }
 
 export class BatchProcessor {
   private config: BatchConfig;
-  private performanceMonitor = getPerformanceMonitor();
-  private createdUrls: string[] = [];
 
   constructor(config: Partial<BatchConfig> = {}) {
     this.config = {
-      maxConcurrentBatches: 1,
-      batchSize: 1,
+      maxConcurrentBatches: 2,
+      batchSize: 2,
       enableProgressUpdates: true,
-      enablePerformanceMonitoring: true,
       ...config
     };
-    
-    // Register cleanup callback with memory manager
-    memoryManager.registerCleanup(() => {
-      this.cleanupUrls();
-    });
   }
 
   async processBatch(
@@ -35,16 +24,6 @@ export class BatchProcessor {
     options: ProcessingOptions,
     onProgress: (progress: ProcessingProgress) => void
   ): Promise<ProcessedImage[]> {
-    // Check memory pressure before starting
-    if (this.isMemoryPressureHigh()) {
-      console.warn('High memory pressure detected, reducing batch size');
-      this.config.batchSize = Math.max(1, Math.floor(this.config.batchSize / 2));
-    }
-
-    if (this.config.enablePerformanceMonitoring) {
-      this.performanceMonitor.start(files.length);
-    }
-
     const results: ProcessedImage[] = [];
     const batches = this.createBatches(files, this.config.batchSize);
     
@@ -65,34 +44,9 @@ export class BatchProcessor {
           results.push(...result.value);
         }
       });
-      
-      // Force garbage collection between chunks
-      if (typeof window !== 'undefined' && window.gc) {
-        window.gc();
-      }
-      
-      // Check memory pressure
-      if (this.isMemoryPressureHigh()) {
-        console.warn('High memory pressure detected during processing, pausing...');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Pause for 1 second
-      }
     }
-
-    if (this.config.enablePerformanceMonitoring) {
-      console.log(this.performanceMonitor.getSummary());
-    }
-
-    // Clean up object URLs
-    this.cleanupUrls();
-    
-    // Force memory cleanup
-    memoryManager.forceCleanup();
 
     return results;
-  }
-
-  private isMemoryPressureHigh(): boolean {
-    return memoryManager.isMemoryPressureHigh();
   }
 
   private createBatches(files: File[], batchSize: number): File[][] {
@@ -132,7 +86,6 @@ export class BatchProcessor {
         );
 
         const processedUrl = URL.createObjectURL(blob);
-        this.createdUrls.push(processedUrl);
 
         const result: ProcessedImage = {
           id: `${file.name}-${Date.now()}-${globalIndex}`,
@@ -147,16 +100,8 @@ export class BatchProcessor {
         };
 
         results.push(result);
-
-        if (this.config.enablePerformanceMonitoring) {
-          this.performanceMonitor.recordSuccess(processingTime);
-        }
       } catch (error) {
         console.error(`Error processing ${file.name}:`, error);
-        
-        if (this.config.enablePerformanceMonitoring) {
-          this.performanceMonitor.recordError(`Failed to process ${file.name}: ${error}`);
-        }
       }
     }
 
@@ -186,17 +131,6 @@ export class BatchProcessor {
     
     return operations.join(' + ');
   }
-
-  private cleanupUrls() {
-    this.createdUrls.forEach(url => {
-      try {
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        console.warn('Failed to revoke object URL:', error);
-      }
-    });
-    this.createdUrls = [];
-  }
 }
 
 // Factory function for creating optimized batch processors
@@ -206,26 +140,23 @@ export function createBatchProcessor(fileCount: number): BatchProcessor {
   if (fileCount <= 2) {
     // Very small batches - process all at once
     config = {
-      maxConcurrentBatches: 1,
-      batchSize: 1,
-      enableProgressUpdates: true,
-      enablePerformanceMonitoring: false
+      maxConcurrentBatches: 2,
+      batchSize: 2,
+      enableProgressUpdates: true
     };
   } else if (fileCount <= 5) {
     // Small batches - reduced concurrency
     config = {
-      maxConcurrentBatches: 1,
-      batchSize: 1,
-      enableProgressUpdates: true,
-      enablePerformanceMonitoring: true
+      maxConcurrentBatches: 2,
+      batchSize: 2,
+      enableProgressUpdates: true
     };
   } else {
-    // Large batches - controlled concurrency with very small batch sizes
+    // Large batches - controlled concurrency
     config = {
-      maxConcurrentBatches: 1,
-      batchSize: 1,
-      enableProgressUpdates: true,
-      enablePerformanceMonitoring: true
+      maxConcurrentBatches: 2,
+      batchSize: 2,
+      enableProgressUpdates: true
     };
   }
 

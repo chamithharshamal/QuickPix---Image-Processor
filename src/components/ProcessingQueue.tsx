@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProcessedImage } from '@/types';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
@@ -13,6 +13,20 @@ interface ProcessingQueueProps {
 export default function ProcessingQueue({ processedImages, isProcessing }: ProcessingQueueProps) {
   const [downloading, setDownloading] = useState(false);
   const [expandedImageId, setExpandedImageId] = useState<string | null>(null);
+
+  // Clean up blob URLs when processedImages change or component unmounts
+  useEffect(() => {
+    // Clean up function
+    return () => {
+      processedImages.forEach(image => {
+        try {
+          URL.revokeObjectURL(image.processedUrl);
+        } catch (error) {
+          console.warn('Failed to revoke object URL:', error);
+        }
+      });
+    };
+  }, [processedImages]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -123,29 +137,16 @@ export default function ProcessingQueue({ processedImages, isProcessing }: Proce
                       alt={image.originalFile.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        // If the processedUrl fails, try creating a new object URL from the blob
+                        console.error('Error loading thumbnail image:', e);
+                        console.log('Blob size:', image.processedBlob.size);
+                        console.log('Blob type:', image.processedBlob.type);
+                        console.log('Processed URL:', image.processedUrl);
+                        // Set a fallback image or hide the element
                         const target = e.target as HTMLImageElement;
-                        if (image.processedBlob) {
-                          const objectUrl = URL.createObjectURL(image.processedBlob);
-                          target.src = objectUrl;
-                          // Clean up the object URL when the component unmounts or image changes
-                          target.onload = () => {
-                            URL.revokeObjectURL(objectUrl);
-                          };
-                        } else {
-                          // Fallback to placeholder if no blob available
-                          target.style.display = 'none';
-                          const parent = target.parentElement;
-                          if (parent) {
-                            parent.innerHTML = `
-                              <div class="w-full h-full bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                              </div>
-                            `;
-                          }
-                        }
+                        target.style.display = 'none';
+                      }}
+                      onLoad={(e) => {
+                        console.log('Thumbnail image loaded successfully');
                       }}
                     />
                   </div>
@@ -202,26 +203,16 @@ export default function ProcessingQueue({ processedImages, isProcessing }: Proce
                         alt="Processed preview" 
                         className="max-h-64 mx-auto object-contain rounded-lg border border-gray-200 dark:border-gray-700"
                         onError={(e) => {
-                          // If the processedUrl fails, try creating a new object URL from the blob
+                          console.error('Error loading expanded image:', e);
+                          console.log('Blob size:', image.processedBlob.size);
+                          console.log('Blob type:', image.processedBlob.type);
+                          console.log('Processed URL:', image.processedUrl);
+                          // Set a fallback image or hide the element
                           const target = e.target as HTMLImageElement;
-                          if (image.processedBlob) {
-                            const objectUrl = URL.createObjectURL(image.processedBlob);
-                            target.src = objectUrl;
-                            // Clean up the object URL when the component unmounts or image changes
-                            target.onload = () => {
-                              URL.revokeObjectURL(objectUrl);
-                            };
-                          } else {
-                            // Fallback if no blob available
-                            target.parentElement!.innerHTML = `
-                              <div class="text-center py-8">
-                                <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <p class="mt-2 text-gray-500">Failed to load image preview</p>
-                              </div>
-                            `;
-                          }
+                          target.style.display = 'none';
+                        }}
+                        onLoad={(e) => {
+                          console.log('Expanded image loaded successfully');
                         }}
                       />
                     </div>
