@@ -1,15 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable static optimization for better performance
-  output: 'export',
-  trailingSlash: true,
-  
-  // Optimize images
-  images: {
-    unoptimized: true, // Required for static export
-  },
-  
   // Webpack configuration for TensorFlow.js
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -21,28 +12,19 @@ const nextConfig: NextConfig = {
       };
     }
     
-    // Optimize for client-side processing
-    config.optimization.splitChunks = {
-      chunks: 'all',
-      cacheGroups: {
-        tensorflow: {
-          test: /[\\/]node_modules[\\/]@tensorflow[\\/]/,
-          name: 'tensorflow',
-          chunks: 'all',
-          priority: 10,
-        },
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          chunks: 'all',
-          priority: 5,
-        },
-      },
-    };
-    
     return config;
   },
   
+  // Optimize images for Vercel deployment
+  images: {
+    domains: [],
+    formats: ['image/webp', 'image/avif'],
+  },
+  
+  // Enable experimental features if needed
+  experimental: {
+    optimizePackageImports: ['@tensorflow/tfjs'],
+  },
 };
 
 export default nextConfig;
